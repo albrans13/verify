@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ALBRANS | التحقق الإلهي 🔥</title>
+    <!-- ========================================================= -->
+    <!-- المواصفات 1: المكتبات الخارجية الأساسية                     -->
+    <!-- Telegram WebApp SDK للتفاعل مع تطبيق تلغرام                -->
+    <!-- Google reCAPTCHA v2 للتحقق من البشر                        -->
+    <!-- Three.js لخلفية ثلاثية الأبعاد متحركة                       -->
+    <!-- GSAP للحركات السينمائية والأنيميشن                         -->
+    <!-- Font Awesome 6 للأيقونات الفاخرة                           -->
+    <!-- Google Fonts: خط Cairo العربي الأنيق                       -->
+    <!-- ========================================================= -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js"
+            }
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        /* ========================================================= */
+        /* المواصفات 2: التنسيقات العامة وإعادة ضبط الأنماط           */
+        /* خلفية داكنة، إزالة الهوامش، منع التحديد                   */
+        /* ========================================================= */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Cairo', 'Segoe UI', sans-serif;
+            overflow-x: hidden;
+            background-color: #050b14;
+            min-height: 100vh;
+            position: relative;
+            color: #ffffff;
+        }
+
+        /* حاوية الخلفية ثلاثية الأبعاد (طبقة تحت كل شيء) */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.7;
+        }
+
+        /* البطاقة الزجاجية الرئيسية */
+        .main-card {
+            position: relative;
+            z-index: 10;
+            max-width: 520px;
+            width: 90%;
+            margin: 5vh auto;
+            background: rgba(10, 20, 30, 0.55);
+            backdrop-filter: blur(12px) saturate(180%);
+            border-radius: 48px;
+            border: 1px solid rgba(88, 166, 255, 0.4);
+            box-shadow: 0 30px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(88, 166, 255, 0.2) inset;
+            padding: 2rem 1.8rem;
+            transition: transform 0.2s ease-out;
+            animation: cardEntry 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        @keyframes cardEntry {
+            from { opacity: 0; transform: scale(0.96) translateY(40px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* الشعار المتحرك */
+        .logo-3d {
+            text-align: center;
+            margin-bottom: 1rem;
+            animation: floatLogo 3s infinite ease-in-out;
+        }
+        @keyframes floatLogo {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+            100% { transform: translateY(0px); }
+        }
+        .logo-3d i {
+            font-size: 4rem;
+            background: linear-gradient(135deg, #58a6ff, #c084fc, #f472b6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            filter: drop-shadow(0 0 12px #58a6ff);
+        }
+        .brand-name {
+            font-size: 2rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            background: linear-gradient(120deg, #fff, #58a6ff, #a855f7);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .brand-sub {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            letter-spacing: 3px;
+        }
+
+        /* عنوان التحقق */
+        .verify-header {
+            text-align: center;
+            margin: 1.5rem 0 1rem;
+        }
+        .verify-header h2 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(145deg, #f0f6fc, #7aaef5);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .verify-header p {
+            color: #b9c7d9;
+            font-size: 0.85rem;
+        }
+
+        /* حاوية reCAPTCHA مع تأثير توهج */
+        .recaptcha-glow {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 2rem;
+            padding: 1.2rem;
+            margin: 1rem 0;
+            border: 1px solid rgba(88, 166, 255, 0.5);
+            transition: all 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            display: flex;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .recaptcha-glow:hover {
+            border-color: #58a6ff;
+            box-shadow: 0 0 20px rgba(88, 166, 255, 0.5);
+            transform: scale(1.01);
+        }
+
+        /* شريط الحالة مع نبض */
+        .status-pulse {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 60px;
+            padding: 0.8rem 1rem;
+            margin: 1.2rem 0;
+            text-align: center;
+            font-weight: 500;
+            border-left: 4px solid #58a6ff;
+            border-right: 4px solid #58a6ff;
+        }
+        .status-text {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 0.95rem;
+        }
+        .pulse-dot {
+            width: 12px;
+            height: 12px;
+            background-color: #58a6ff;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulseRed 1.2s infinite;
+        }
+        @keyframes pulseRed {
+            0% { box-shadow: 0 0 0 0 rgba(88,166,255,0.7); opacity: 1; }
+            70% { box-shadow: 0 0 0 8px rgba(88,166,255,0); opacity: 0.6; }
+            100% { box-shadow: 0 0 0 0 rgba(88,166,255,0); opacity: 1; }
+        }
+
+        /* زر التأكيد الفخم */
+        .verify-action-btn {
+            width: 100%;
+            background: linear-gradient(95deg, #1e6f2f, #2c9a48);
+            border: none;
+            padding: 1rem;
+            border-radius: 60px;
+            font-weight: 800;
+            font-size: 1.2rem;
+            font-family: 'Cairo', sans-serif;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 0.5rem;
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.3);
+        }
+        .verify-action-btn.visible {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        .verify-action-btn:hover {
+            background: linear-gradient(95deg, #2c9a48, #3fc96a);
+            transform: scale(1.02);
+        }
+
+        .footer-advanced {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 0.7rem;
+            color: #9aa9bb;
+            border-top: 1px dashed rgba(88,166,255,0.3);
+            padding-top: 1rem;
+        }
+
+        .custom-loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #58a6ff;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 550px) {
+            .main-card { padding: 1.5rem; }
+            .brand-name { font-size: 1.6rem; }
+            .verify-header h2 { font-size: 1.4rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div class="main-card">
+        <div class="logo-3d">
+            <i class="fas fa-dragon"></i>
+            <div class="brand-name">𝐀𝐋𝐁𝐑𝐀𝐍𝐒</div>
+            <div class="brand-sub"><i class="fas fa-shield-halos"></i> SECURE GATEWAY <i class="fas fa-shield-halos"></i></div>
+        </div>
+
+        <div class="verify-header">
+            <h2><i class="fas fa-robot"></i> تحقق أمان حيوي</h2>
+            <p><i class="fas fa-fingerprint"></i> تأكيد هوية حقيقية • حماية فائقة الذكاء</p>
+        </div>
+
+        <!-- حاوية reCAPTCHA -->
+        <div class="recaptcha-glow" id="recaptchaWrapper">
+            <div class="g-recaptcha" data-sitekey="6LdEu6gsAAAAACCXGv_RETeYWtGt9Y99hi44bPHn" data-callback="onRecaptchaSuccess" data-expired-callback="onRecaptchaExpired" data-error-callback="onRecaptchaError"></div>
+        </div>
+
+        <div class="status-pulse" id="statusBox">
+            <div class="status-text" id="statusMessage">
+                <span class="pulse-dot"></span>
+                <span id="statusLabel">🛡️ جاري تجهيز طبقة الحماية المتقدمة...</span>
+            </div>
+        </div>
+
+        <button id="finalVerifyBtn" class="verify-action-btn">
+            <i class="fas fa-check-double"></i> تأكيد الهوية وإرسال
+            <i class="fas fa-paper-plane"></i>
+        </button>
+
+        <div class="footer-advanced">
+            <i class="fas fa-crown"></i> 𝐏𝐎𝐖𝐄𝐑𝐄𝐃 𝐁𝐘 𝐀𝐋𝐁𝐑𝐀𝐍𝐒 &nbsp;|&nbsp; 
+            <i class="fas fa-lock"></i> تشفير عسكري
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- المواصفات 3: محرك الصوت الفاخر (ALBRANS AUDIO ENGINE)      -->
+    <!-- يولد أصوات انتصار، نقر، خطأ، إرسال وترحيب باستخدام Web Audio API -->
+    <!-- ========================================================= -->
+    <script>
+        (function() {
+            let audioCtx = null;
+            let isAudioEnabled = true;
+            function initAudio() {
+                if (!audioCtx && window.AudioContext) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                return audioCtx;
+            }
+            function playTone(frequency = 880, duration = 0.2, volume = 0.3, type = 'sine') {
+                try {
+                    const ctx = initAudio();
+                    if (!ctx || !isAudioEnabled) return;
+                    if (ctx.state === 'suspended') {
+                        ctx.resume().then(() => playTone(frequency, duration, volume, type));
+                        return;
+                    }
+                    const now = ctx.currentTime;
+                    const oscillator = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    oscillator.type = type;
+                    oscillator.frequency.value = frequency;
+                    gain.gain.value = volume;
+                    oscillator.connect(gain);
+                    gain.connect(ctx.destination);
+                    oscillator.start();
+                    gain.gain.exponentialRampToValueAtTime(0.00001, now + duration);
+                    oscillator.stop(now + duration);
+                } catch(e) { console.warn("Audio error:", e); }
+            }
+            window.albransAudio = {
+                playSuccess: () => {
+                    playTone(880, 0.12, 0.25, 'sine');
+                    setTimeout(() => playTone(1244, 0.2, 0.3, 'sine'), 100);
+                    setTimeout(() => playTone(1568, 0.4, 0.25, 'sine'), 250);
+                },
+                playClick: () => playTone(660, 0.08, 0.15, 'triangle'),
+                playError: () => {
+                    playTone(440, 0.3, 0.25, 'sawtooth');
+                    setTimeout(() => playTone(330, 0.35, 0.25, 'sawtooth'), 200);
+                },
+                playSend: () => {
+                    playTone(523.25, 0.1, 0.2, 'sine');
+                    setTimeout(() => playTone(659.25, 0.15, 0.25, 'sine'), 80);
+                    setTimeout(() => playTone(783.99, 0.2, 0.2, 'sine'), 180);
+                },
+                playWelcome: () => {
+                    playTone(523.25, 0.2, 0.2, 'sine');
+                    setTimeout(() => playTone(659.25, 0.2, 0.25, 'sine'), 200);
+                    setTimeout(() => playTone(783.99, 0.3, 0.2, 'sine'), 400);
+                    setTimeout(() => playTone(1046.50, 0.4, 0.15, 'sine'), 650);
+                }
+            };
+            let welcomePlayed = false;
+            document.body.addEventListener('click', function once() {
+                if (!welcomePlayed && window.albransAudio) {
+                    welcomePlayed = true;
+                    setTimeout(() => window.albransAudio.playWelcome(), 100);
+                }
+            }, { once: true });
+            console.log("🎵 ALBRANS Audio Engine Ready");
+        })();
+    </script>
+
+    <!-- ========================================================= -->
+    <!-- المواصفات 4: خلفية Three.js ثلاثية الأبعاد                 -->
+    <!-- مشهد متكامل يحتوي على حلقات دوارة، جسيمات، نجوم، إضاءة ديناميكية -->
+    <!-- ========================================================= -->
+    <script type="module">
+        import * as THREE from 'three';
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = null;
+        scene.fog = new THREE.FogExp2(0x050b14, 0.008);
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2, 12);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x000000, 0);
+        container.appendChild(renderer.domElement);
+        // إضاءة
+        const ambientLight = new THREE.AmbientLight(0x222222);
+        scene.add(ambientLight);
+        const pointLight1 = new THREE.PointLight(0x58a6ff, 0.8);
+        pointLight1.position.set(3, 4, 5);
+        scene.add(pointLight1);
+        const pointLight2 = new THREE.PointLight(0xff44aa, 0.5);
+        pointLight2.position.set(-3, 2, 6);
+        scene.add(pointLight2);
+        // المجموعة الرئيسية
+        const group = new THREE.Group();
+        const ringGeo = new THREE.TorusGeometry(1.8, 0.08, 64, 200);
+        const ringMat = new THREE.MeshStandardMaterial({ color: 0x58a6ff, emissive: 0x114466, metalness: 0.7 });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.x = Math.PI / 2;
+        group.add(ring);
+        const ring2Geo = new THREE.TorusGeometry(2.2, 0.05, 64, 200);
+        const ring2Mat = new THREE.MeshStandardMaterial({ color: 0xa855f7, emissive: 0x331166 });
+        const ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
+        ring2.rotation.z = Math.PI / 3;
+        group.add(ring2);
+        // جسيمات
+        const particleCount = 400;
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlePositions = new Float32Array(particleCount * 3);
+        for (let i = 0; i < particleCount; i++) {
+            particlePositions[i*3] = (Math.random() - 0.5) * 12;
+            particlePositions[i*3+1] = (Math.random() - 0.5) * 8;
+            particlePositions[i*3+2] = (Math.random() - 0.5) * 12 - 5;
+        }
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+        const particleMat = new THREE.PointsMaterial({ color: 0x58a6ff, size: 0.07, transparent: true, opacity: 0.6 });
+        const particleSystem = new THREE.Points(particlesGeometry, particleMat);
+        group.add(particleSystem);
+        // الكرة المركزية
+        const coreGeo = new THREE.IcosahedronGeometry(0.65, 0);
+        const coreMat = new THREE.MeshStandardMaterial({ color: 0x88ccff, emissive: 0x2266aa });
+        const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+        group.add(coreMesh);
+        scene.add(group);
+        // النجوم
+        const starGeometry = new THREE.BufferGeometry();
+        const starCount = 1200;
+        const starPositions = new Float32Array(starCount * 3);
+        for (let i = 0; i < starCount; i++) {
+            starPositions[i*3] = (Math.random() - 0.5) * 200;
+            starPositions[i*3+1] = (Math.random() - 0.5) * 100;
+            starPositions[i*3+2] = (Math.random() - 0.5) * 80 - 40;
+        }
+        starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        const stars = new THREE.Points(starGeometry, new THREE.PointsMaterial({ color: 0xffffff, size: 0.08, transparent: true, opacity: 0.5 }));
+        scene.add(stars);
+        let time = 0;
+        function animate3D() {
+            requestAnimationFrame(animate3D);
+            time += 0.008;
+            group.rotation.y = time * 0.3;
+            group.rotation.x = Math.sin(time * 0.2) * 0.2;
+            group.rotation.z = Math.cos(time * 0.25) * 0.15;
+            ring.rotation.z += 0.01;
+            ring2.rotation.x += 0.008;
+            coreMesh.rotation.y = time * 0.5;
+            particleSystem.rotation.y = time * 0.05;
+            stars.rotation.y = time * 0.02;
+            camera.position.x += (0 - camera.position.x) * 0.03;
+            camera.position.y += (Math.sin(time * 0.5) * 0.1 - camera.position.y) * 0.05;
+            camera.lookAt(0, 0, 0);
+            renderer.render(scene, camera);
+        }
+        animate3D();
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+
+    <!-- ========================================================= -->
+    <!-- المواصفات 5: منطق التحقق باستخدام Google reCAPTCHA و Telegram -->
+    <!-- إدارة token reCAPTCHA، إرسال البيانات إلى البوت، تأثيرات GSAP -->
+    <!-- نصوص متحركة فاخرة عن البرنس و OTP                         -->
+    <!-- ========================================================= -->
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        let recaptchaToken = null;
+        let isHumanVerified = false;
+        const statusLabel = document.getElementById('statusLabel');
+        const finalBtn = document.getElementById('finalVerifyBtn');
+        const recaptchaWrapper = document.getElementById('recaptchaWrapper');
+
+        function updateStatus(text, isError = false) {
+            if (statusLabel) {
+                gsap.to(statusLabel, { duration: 0.2, opacity: 0, onComplete: () => {
+                    statusLabel.innerHTML = text;
+                    statusLabel.style.color = isError ? "#ff8866" : "#ffffff";
+                    gsap.to(statusLabel, { duration: 0.3, opacity: 1 });
+                }});
+            }
+            const box = document.getElementById('statusBox');
+            if (box) {
+                box.style.borderLeftColor = isError ? "#ff5555" : "#58a6ff";
+                box.style.borderRightColor = isError ? "#ff5555" : "#58a6ff";
+            }
+        }
+
+        // دوال رد reCAPTCHA
+        window.onRecaptchaSuccess = (token) => {
+            recaptchaToken = token;
+            isHumanVerified = true;
+            updateStatus("✅ تم التحقق البشري بنجاح! اضغط زر التأكيد.");
+            if (window.albransAudio) window.albransAudio.playSuccess();
+            gsap.to(recaptchaWrapper, { duration: 0.5, borderColor: "#2ea043", boxShadow: "0 0 22px #2ea043", repeat: 1, yoyo: true });
+            finalBtn.classList.add('visible');
+            gsap.fromTo(finalBtn, { scale: 0.9 }, { duration: 0.5, scale: 1, ease: "back.out(1.2)" });
+        };
+
+        window.onRecaptchaExpired = () => {
+            isHumanVerified = false;
+            recaptchaToken = null;
+            updateStatus("⏰ انتهت صلاحية التحقق، يرجى إعادة حل الاختبار.", true);
+            finalBtn.classList.remove('visible');
+            if (window.grecaptcha) grecaptcha.reset();
+            if (window.albransAudio) window.albransAudio.playError();
+        };
+
+        window.onRecaptchaError = () => {
+            updateStatus("⚠️ خطأ في خدمة التحقق، حاول مرة أخرى.", true);
+            if (window.grecaptcha) grecaptcha.reset();
+        };
+
+        // زر الإرسال النهائي
+        finalBtn.addEventListener('click', () => {
+            if (!isHumanVerified || !recaptchaToken) {
+                updateStatus("❌ لم يكتمل التحقق بعد، قم بحل الاختبار أولاً.", true);
+                if (window.albransAudio) window.albransAudio.playError();
+                return;
+            }
+            finalBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> جاري التشفير والإرسال...';
+            finalBtn.disabled = true;
+            updateStatus("🚀 إرسال بيانات التحقق الآمن إلى البوت...");
+            if (window.albransAudio) window.albransAudio.playSend();
+            const payload = {
+                status: "VERIFIED",
+                token: recaptchaToken,
+                timestamp: Date.now(),
+                platform: "telegram_webapp",
+                user: tg.initDataUnsafe?.user || { id: "anonymous" }
+            };
+            try {
+                tg.sendData(JSON.stringify(payload));
+                updateStatus("✨ تم الإرسال! جاري إغلاق البوابة...");
+                if (window.albransAudio) window.albransAudio.playSuccess();
+                gsap.to(finalBtn, { duration: 0.2, scale: 0.95, yoyo: true, repeat: 1 });
+                setTimeout(() => tg.close(), 800);
+            } catch(e) {
+                updateStatus("💥 فشل الإرسال، حاول مجدداً.", true);
+                finalBtn.innerHTML = '<i class="fas fa-check-double"></i> تأكيد الهوية وإرسال <i class="fas fa-paper-plane"></i>';
+                finalBtn.disabled = false;
+                if (window.grecaptcha) grecaptcha.reset();
+                isHumanVerified = false;
+                finalBtn.classList.remove('visible');
+            }
+        });
+
+        // تأثير Parallax للبطاقة
+        const card = document.querySelector('.main-card');
+        document.addEventListener('mousemove', (e) => {
+            if (!card) return;
+            const xAxis = (window.innerWidth / 2 - e.pageX) / 35;
+            const yAxis = (window.innerHeight / 2 - e.pageY) / 35;
+            card.style.transform = `perspective(1000px) rotateY(${xAxis}deg) rotateX(${yAxis * -1}deg) translateY(-5px)`;
+            setTimeout(() => { if(card) card.style.transform = ''; }, 300);
+        });
+
+        // نصوص متحركة فاخرة عن البرنس و OTP
+        const subBrand = document.querySelector('.brand-sub');
+        if (subBrand) {
+            const texts = [
+                "👑 البرنس: أسطورة الحماية",
+                "⚡ OTP: صاعقة لا تُرد",
+                "🔥 البرنس: قاهر الثغرات",
+                "📩 رمز التحقق الخارق",
+                "🛡️ درع الأرقام السرية"
+            ];
+            let i = 0;
+            setInterval(() => {
+                i = (i + 1) % texts.length;
+                gsap.to(subBrand, { duration: 0.5, opacity: 0, onComplete: () => {
+                    subBrand.innerHTML = `<i class="fas fa-shield-halos"></i> ${texts[i]} <i class="fas fa-shield-halos"></i>`;
+                    gsap.to(subBrand, { duration: 0.5, opacity: 1 });
+                }});
+            }, 4000);
+        }
+
+        // إعادة تحميل reCAPTCHA يدويًا في حال تأخر التحميل
+        setTimeout(() => {
+            if (!isHumanVerified && window.grecaptcha && !document.querySelector('.g-recaptcha iframe')) {
+                grecaptcha.render('.g-recaptcha', {
+                    sitekey: '6LdEu6gsAAAAACCXGv_RETeYWtGt9Y99hi44bPHn',
+                    callback: 'onRecaptchaSuccess',
+                    'expired-callback': 'onRecaptchaExpired'
+                });
+                updateStatus("🔄 إعادة تهيئة طبقة التحقق...");
+            }
+        }, 2000);
+    </script>
+</body>
+</html>
